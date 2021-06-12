@@ -26,7 +26,58 @@
 - 클로저 표현 방법은 클로저의 위치를 기준으로 크게 기본 클로저 표현과 후행 클로저 표현이 있습니다.
 - 또, 각 표현 내에서 가독성을 해치지 않는 선에서 표현을 생략하거나 축약할 수 있는 방법이 있습니다.
 
-## 탈출 클로저
+### 기본 클로저
+- (코드) 스위프트 라이브러리의 sorted(by:) 메서드 정의
+```swift
+public func sorted(by areaIncreaseingOrder: (Element, Element) -> Bool) -> [Element]
+```
+- String 타입의 배열에 이름을 넣어 영문 알파벳을 내림차순으로 정렬하려고 합니다.
+- (코드) 정렬에 사용될 이름 배열
+```swift
+let names: [String] = ["wizplan", "eric", "yagom", "jenny"]
+```
+- sorted(by:) 메서드는 (배열의 타입과 같은 두 개의 매개변수를 가지며 Bool 타입을 반환하는) 클로저를 전달인자로 받을 수 있습니다.
+- 반환하는 Bool 값은 첫 번째 전달인자 값이 새로 생성되는 배열에서 두 번째 전달인자 값보다 먼저 배치되어야 하는지에 대한 결과값입니다.
+- true를 반환하면 첫 번째 전달인자가 두 번째 전달인자보다 앞에 옵니다
+- (코드) 정렬을 위한 함수 전달
+```swift
+func backwards(first: String, second: String) -> Bool {
+  print("\(first) \(second) 비교중")
+  return first > second
+}
+
+let reversed: [String] = names.sorted(by: backwards)
+print(reversed) // ["yagom", "wizplan", "jenny", "eric"]
+```
+- 만약 first 문자열이 second 문자열보다 크다면('알파벳이 더 뒤쪽이다'라는 뜻입니다. 예를 들어 'B'는 'A'보다 큽니다. 'yagom'은 'eric'보다 큽니다.) backwards(first: second:) 함수의 반환 값은 true가 될 것입니다.
+- 즉, 값이 더 큰 first 문자열이 second 문자열보다 앞쪽에 정렬되어야 한다는 뜻입니다.
+- 그러나 first > second라는 반환 값을 받기 위해 너무 많은 표현을 사용했습니다.
+- 예시 코드에서 print() 함수는 참고용 콘솔 출력이니 제외해도 역시 많습니다.
+- 함수 이름부터 매개변수 표현까지 부가적인 표현도 많습니다.
+- 이를 클로저 표현을 사용해서 조금 더 간결하게 표현하겠습니다.
+- 클로저 표현은 통상 아래 형식을 따릅니다.
+- (코드) 기본 클로저 표현 형식
+```swift
+{ (매개변수들) -> 반환 타입 in
+    실행 코드
+}
+```
+- 클로저도 함수와 마찬가지로 입출력 매개변수를 사용할 수 있습니다.
+- 매개변수 이름을 지정한다면 가변 매개변수 또한 사용 가능합니다.
+- 다만 클로저는 매개변수 기본값을 사용할 수 없습니다.
+- (코드) backwards(first: second:) 함수를 클로저 표현으로 대체하여 sorted(by:) 메서드에 클로저 전달
+```swift
+// backwards(first: second:) 함수 대신에 sorted(by:) 메서드의 전달인자로 클로저를 직접 전달합니다.
+let reversed: [String] = names.sorted (by: {first: String, second: String} -> Bool in
+    return first > second
+})
+print(reversed) // ["yagom", "wizplan", "jenny", "eric"]
+```
+- sorted(by:) 메서드로 전달하는 클로저의 매개변수 개수와 타입, 그리고 반환 타입이 모두 backwards(first: second:) 함수와 같습니다.
+- 이렇게 프로그래밍하면 sorted(by:) 메서드로 전달되는 backward(first: second:) 함수가 어디에 있는지, 어떻게 구현되어 있는지 찾아다니지 않아도 됩니다.
+- 물론, 반복해서 같은 기능을 사용하려면 함수로 구현해두는 것도 나쁘지 않습니다. 이는 여러분의 선택입니다.
+
+### 탈출 클로저
 - 함수의 전달인자로 전달한 클로저가 함수 종료 후에 호출될 때 클로저가 탈출(Escape)한다고 표현합니다.
 - 클로저를 매개변수로 갖는 함수를 선언할 때 매개변수 이름의 콜론(:) 뒤에 @escaping 키워드를 사용하여 클로저가 탈출한다는 것을 허용한다고 명시해줄 수 있습니다.
 - 예를 들어 비동기 작업을 실행하는 함수들은 클로저를 컴플리션 핸들러(Completion handler) 전달인자로 받아옵니다.

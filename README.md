@@ -170,3 +170,162 @@ print(instance.x) // 100
 ```
 - 위 코드에서 비탈출 클로저에서는 인스턴스의 프로퍼티인 x를 사용하기 위해 self 키워드를 생략해도 무관했지만, 탈출하는 클로저에서는 값 획득을 하기 위해 self 키워드를 사용하여 프로퍼티에 접근해야만 합니다.
 
+### 후행 클로저
+- 함수나 메서드의 마지막 전달인자로 위치하는 클로저는 함수나 메서드의 소괄호를 닫은 후 작성해도 됩니다.
+- 클로저가 조금 길어지거나 가독성이 조금 떨어진다 싶으면 후행 클로저(Trailing Closure) 기능을 사용하면 좋습니다.
+- Xcode에서 자동완성 기능을 사용하면 자동으로 후행 클로저로 유도합니다.
+- 단, 후행 클로저는 맨 마지막 전달인자로 전달되는 클로저에만 해당되므로 전달인자로 클로저 여러 개를 전달할 때는 맨 마지막 클로저만 후행 클로저로 사용할 수 ㅇㅆ습니다.
+- 또한 sorted(by:) 메서드처럼 단 하나의 클로저만 전달인자로 전달하는 경우에는 소괄호를 생략해줄 수도 있습니다.
+- (코드) 후행 클로저 표현
+```swift
+// 후행 클로저의 사용
+let reversed: [String] = names.sorted() { (first: String, second: String) -> Bool in
+    return first > second
+}
+
+// sorted(by:) 메서드의 소괄호까지 생략 가능합니다.
+let reversed: [String] = names.sorted { (first: String, second: String) -> Bool in
+    return first > second
+}
+```
+
+
+### 클로저 표현 간소화
+
+#### 1. 문맥을 이용한 타입 유추
+- 메서드의 전달인자로 전달하는 클로저는 메서드에서 요구하는 형태로 전달해야 합니다.
+- 즉, 매개변수의 타입이나 개수, 반환 타입 등이 같아야 전달인자로서 전달할 수 있습니다.
+- 이를 다르게 말하면, 전달인자로 전달할 클로저는 이미 적합한 타입을 준수하고 있다고 유추할 수 있습니다.
+- 문맥에 따라 적절히 타입을 유추할 수 있기 때문에 전달인자로 전달하는 클로저를 구현할 때는 매개변수의 타입이나 반환 값의 타입을 굳이 표현해주지 않고 생략하더라도 문제가 없습니다.
+- (코드) 클로저의 타입 유추
+```swift
+// 클로저의 매개변수 타입과 반환 타입을 생략하여 표현할 수 있습니다.
+let reversed: [String] = names.sorted { (first, second) in
+    return first > second
+}
+```
+
+#### 2. 단축 인자 이름
+- 스위프트는 매개변수의 이름을 생략할 수 있도록 단축 인자 이름을 제공합니다.
+- 단축 인자 이름은 첫 번째 전달인자부터 $0, $1, $2, $3, ... 순서로 $와 숫자의 조합으로 표현합니다.
+- 단축 인자 표현을 사용하게 되면 매개변수 및 반환 타입과 실행 코드를 구분하기 위해 사용했던 키워드 in을 사용할 필요도 없어집니다.
+- (코드) 단축 인자 이름 사용
+```swift
+// 단축 인자 이름 사용
+let reversed: [String] = names.sorted {
+    return $0 > $1
+}
+```
+
+#### 3. 암시적 반환 표현
+- 클로저에서는 return 키워드마저 생략할 수 있습니다.
+- 만약 클로저가 반환 값을 갖는 클로저이고 클로저 내부의 실행문이 단 한 줄이라면, 암시적으로 그 실행문을 반환 값으로 사용할 수 있습니다.
+- (코드) 암시적 반환 표현의 사용
+```swift
+// 암시적 반환 표현의 사용
+let reversed: [String] = names.sorted { $0 > $1 }
+```
+
+#### 4. 연산자 함수
+- 클로저는 매개변수의 타입과 반환 타입이 연산자를 구현한 함수의 모양과 동일하다면 연산자만 표기하더라도 알아서 연산하고 반환합니다.
+- (코드) > 연산자 정의
+```swift
+public func > <T: Comparable>(lhs: T, rhs: T) -> Bool
+```
+- 위 코드에서는 > 자체가 함수의 이름입니다.
+- 이 함수는 우리가 전달인자로 보내기에 충분한 조건을 갖고 있습니다.
+- (코드) 클로저로서의 연산자 함수 사용
+```swift
+// 연산자 함수를 클로저의 역할로 사용
+let reversed: [String] = names.sorted(by: >)
+```
+
+
+### 값 획득
+- 클로저는 자신이 정의된 위치의 주변 문맥을 통해 상수나 변수를 획득(Capture)할 수 있습니다.
+- 값 획득을 통해 클로저는 주변에 정의한 상수나 변수가 더 이상 존재하지 않더라도 해당 상수나 변수의 값을 자신 내부에서 참조하거나 수정할 수 있습니다.
+- 이 이야기를 하는 이유는 클로저가 비동기 작업에 많이 사용되기 때문입니다.
+- 클로저를 통해 비동기 콜백(Call-back)을 작성하는 경우, 현재 상태를 미리 획득해두지 않으면, 실제로 클로저의 기능을 실행하는 순간에는 주변의 상수나 변수가 이미 메모리에 존재하지 않는 경우가 발생합니다.
+- 중첩 함수도 하나의 클로저 형태라고 앞에서 설명했는데, 이 중첩 함수 주변의 변수나 상수를 획득해 놓을 수도 있습니다.
+- 즉, 자신을 포함하는 함수의 지역변수나 지역상수를 획득할 수 있습니다.
+- (코드) incrementer라는 함수를 중첩 함수로 포함하는 makeIncrementer 함수
+```swift
+func makeIncrementer(forIncrement amount: Int) -> (() -> Int) {
+  var runningTotal = 0
+  func incrementer() -> Int {
+      runningTotal += amount
+      return runningTotal
+  }
+  return incrementer
+}
+```
+- 중첩 함수인 incrementer() 함수는 자신 주변에 있는 runningTotal과 amount라는 두 값을 획득합니다.
+- 두 값을 획득한 후에 incrementer는 클로저로서 makeIncrementer 함수에 의해 반환됩니다.
+- makeIncrementer 함수의 반환 타입은 () -> Int입니다.
+- 이는 함수객체를 반환한다는 의미입니다.
+- 반환하는 함수는 매개변수를 받지 않고 반환 타입은 Int인 함수로, 호출할 때마다 Int 타입의 값을 반환해줍니다.
+- incrementer가 반환하게 될 값을 저장하는 용도로 runningTotal을 정의했고, 0으로 초기화해두었습니다.
+- 그리고 forIncrement라는 전달인자 레이블과 amount라는 매개변수 이름이 있는 Int 타입 매개변수 하나가 있습니다.
+- incrementer() 함수가 호출될 때마다 amount의 값만큼 runningTotal 값이 증가합니다.
+- 또한 값을 증가시키는 역할을 하는 incrementer라는 이름의 중첩 함수를 정의했습니다.
+- 이 incrementer() 함수는 amount 값을 runningTotal에 대하여 결과값을 반환합니다.
+- (코드) incrementer() 함수
+```swift
+func incrementer() -> Int {
+  runningTotal += amount
+  return runningTotal
+}
+```
+- incrementer() 함수는 어떤 매개변수도 갖지 않으며, runningTotal이라는 변수가 어디 있는지 찾아볼 수도 없습니다. 지금 이 형태만으로는 잘못된 코드입니다.
+- 그러나 incrementer() 함수 주변에 runningTotal과 amount 변수가 있다면 incrementer() 함수는 두 변수의 참조를 획득할 수 있습니다.
+- 참조를 획득하면 runningTotal과 amount는 makeIncrementer 함수의 실행이 끝나도 사라지지 않습니다.
+- 게다가 incrementer가 호출될 때마다 계속해서 사용할 수 있습니다.
+- makeIncrementer(forIncrement:) 함수를 사용하여 incrementByTwo라는 이름의 상수에 increment 함수를 할당해줬습니다.
+- incrementByTwo를 호출할 때마다 runningTotal은 값이 2씩 증가합니다.
+- (코드) incrementByTwo 상수에 함수 할당
+```swift
+let incrementByTwo: (() -> Int) = makeIncrementer(forIncrement: 2)
+
+let first: Int = incrementByTwo() // 2
+let second: Int = incrementByTwo() // 4
+let third: Int = incrementByTwo() // 6
+```
+- incrementer를 하나 더 생성해주면, incrementerByTwo와는 별개의 다른 참조를 갖는 runningTotal 변숫값을 확인할 수 있습니다.
+- (코드) 각각의 incrementer의 동작
+```swift
+let incrementByTwo: (() -> Int) = makeIncrementer(forIncrement: 2)
+let incrementByTwo2: (() -> Int) = makeIncrementer(forIncrement: 2)
+let incrementByTen: (() -> Int) = makeIncrementer(forIncrement: 10)
+
+let first: Int = incrementByTwo() // 2
+let second: Int = incrementByTwo() // 4
+let third: Int = incrementByTwo() // 6
+
+let first2: Int incrementByTwo2() // 2
+let second2: Int incrementByTwo2() // 4
+let third2: Int incrementByTwo2() // 6
+
+let ten: Int = incrementByTen() // 10
+let twenty: Int = incrementByTen() // 20
+let thirty: Int = incrementByTen() // 30
+```
+- 각각의 incrementer 함수는 언제 호출이 되더라도 자신만의 runningTotal 변수를 갖고 카운트하게 됩니다.
+- 다른 함수의 영향도 전혀 받지 않습니다.
+- 각각 자신만의 runningTotal의 참조를 미리 획득했기 때문입니다.
+- ** Note: 클래스 인스턴스 프로퍼티로서의 클로저
+  - 클래스 인스턴스의 프로퍼티로 클로저를 할당한다면 클로저는 해당 인스턴스 또는 인스턴스의 멤버의 참조를 획득할 수 있으나, 클로저와 인스턴스 사이에 강한참조 순환 문제가 발생할 수 있습니다.
+  - 강한참조 순환 문제는 획득목록을 통해 없앨 수 있습니다.
+
+
+### 클로저는 참조 타입
+- 함수나 클로저를 상수나 변수에 할당할 때마다 사실은 상수나 변수에 함수나 클로저의 참조를 설정하는 것입니다.
+- 즉, incrementByTwo라는 상수에 클로저를 할당한다는 것은 클로저의 내용물, 즉 값을 할당하는 것이 아니라 해당 클로저의 참조를 할당하는 것입니다.
+- 결국 클로저의 참조를 다른 상수에 할당해준다면 이는 두 상수가 모두 같은 클로저를 가리킨다는 뜻입니다.
+- (코드) 참조 타입인 클로저
+```swift
+let incrementByTwo: (() -> Int) = makeIncrementer(forIncrement: 2)
+let sameWithIncrementByTwo: (() -> Int) = incrementByTwo
+
+let first: Int = incrementByTwo() // 2
+let second: Int = sameWithIncrementByTwo() // 4
+```
